@@ -12,6 +12,15 @@ def draw_shape(surface, shape, position, scale):
             if char == '*':
                 pygame.draw.rect(surface, (255, 0, 0), (position[0] + x * scale, position[1] + y * scale, scale, scale))
 
+def check_collision_with_shape(particle_pos, shape, position, scale):
+    for y, row in enumerate(shape):
+        for x, char in enumerate(row):
+            if char == '*':
+                wall_rect = pygame.Rect(position[0] + x * scale, position[1] + y * scale, scale, scale)
+                if wall_rect.collidepoint(particle_pos):
+                    return wall_rect
+    return None
+
 pygame.init()
 WIDTH, HEIGHT = 1000, 800
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -32,11 +41,11 @@ gravity = 0.1
 box_speed = 5
 
 for _ in range(NUM_PARTICLES):
-    x = random.randint(box_rect.left + 10, box_rect.right - 10)
-    y = random.randint(box_rect.top + 10, box_rect.bottom - 10)
+    x = random.randint(box_rect.left + 10 + scale//2, box_rect.right - 10 - scale//2)
+    y = random.randint(box_rect.top + 10 + scale//2, box_rect.bottom - 10 - scale//2)
     vx = random.uniform(-1, 1)
     vy = random.uniform(-1, 1)
-    size = random.randint(5, 15)
+    size = random.randint(5, 15)  # Tamaño visual de la partícula
     color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
     particles.append({"pos": [x, y], "vel": [vx, vy], "size": size, "color": color})
 
@@ -77,6 +86,7 @@ while running:
         particle["pos"][0] += particle["vel"][0]
         particle["pos"][1] += particle["vel"][1]
 
+        # Comprobar colisiones con las paredes de la caja
         if particle["pos"][0] < box_rect.left + particle["size"] or particle["pos"][0] > box_rect.right - particle["size"]:
             particle["vel"][0] *= -1
             if particle["pos"][0] < box_rect.left + particle["size"]:
@@ -91,7 +101,26 @@ while running:
             else:
                 particle["pos"][1] = box_rect.bottom - particle["size"]
 
-        pygame.draw.circle(screen, particle["color"], (int(particle["pos"][0]), int(particle["pos"][1])), particle["size"])
+        # Comprobar colisiones con las paredes definidas por la figura
+        collision_wall = check_collision_with_shape(particle["pos"], shape, (box_rect.x + 10, box_rect.y + 10), scale)
+        if collision_wall:
+            # Ajustar la posición de la partícula para evitar que quede atrapada en la pared
+            if abs(particle["pos"][0] - collision_wall.centerx) < abs(particle["pos"][1] - collision_wall.centery):
+                # Colisión vertical
+                if particle["pos"][1] < collision_wall.centery:
+                    particle["pos"][1] = collision_wall.top - (particle['size'] / 2)
+                else:
+                    particle["pos"][1] = collision_wall.bottom + (particle['size'] / 2)
+                particle["vel"][1] *= -1
+            else:
+                # Colisión horizontal
+                if particle["pos"][0] < collision_wall.centerx:
+                    particle["pos"][0] = collision_wall.left - (particle['size'] / 2)
+                else:
+                    particle["pos"][0] = collision_wall.right + (particle['size'] / 2)
+                particle["vel"][0] *= -1
+
+        pygame.draw.circle(screen, particle["color"], (int(particle["pos"][0]), int(particle["pos"][1])), int(particle['size'] / 2))
 
     # Mostrar estadísticas en pantalla
     font = pygame.font.SysFont(None, 36)
