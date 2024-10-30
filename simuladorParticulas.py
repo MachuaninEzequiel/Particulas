@@ -1,6 +1,17 @@
 import pygame
 import random
 
+def load_shape_from_file(filename):
+    with open(filename, 'r') as file:
+        shape = [line.strip() for line in file.readlines()]
+    return shape
+
+def draw_shape(surface, shape, position, scale):
+    for y, row in enumerate(shape):
+        for x, char in enumerate(row):
+            if char == '*':
+                pygame.draw.rect(surface, (255, 0, 0), (position[0] + x * scale, position[1] + y * scale, scale, scale))
+
 pygame.init()
 WIDTH, HEIGHT = 1000, 800
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -9,8 +20,14 @@ pygame.display.set_caption("Simulador de Partículas")
 NUM_PARTICLES = 50
 particles = []
 
-box_size = 500
-box_rect = pygame.Rect(WIDTH // 2 - box_size // 2, HEIGHT // 2 - box_size // 2, box_size, box_size)
+shape = load_shape_from_file('shape.txt')
+scale = 10  # Escala para el tamaño de los asteriscos
+
+# Calcular el tamaño de la "caja" basado en la forma cargada
+box_width = len(shape[0]) * scale
+box_height = len(shape) * scale
+box_rect = pygame.Rect(WIDTH // 2 - box_width // 2, HEIGHT // 2 - box_height // 2, box_width, box_height)
+
 gravity = 0.1
 box_speed = 5
 
@@ -53,7 +70,7 @@ while running:
 
     screen.fill((0, 0, 0))
     
-    pygame.draw.rect(screen, (255, 0, 0), box_rect, 2)
+    draw_shape(screen, shape, (box_rect.x + 10, box_rect.y + 10), scale)
 
     for particle in particles:
         particle["vel"][1] += gravity
